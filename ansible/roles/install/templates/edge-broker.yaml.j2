@@ -1,0 +1,88 @@
+---
+kind: ActiveMQArtemis
+apiVersion: broker.amq.io/v1beta1
+metadata:
+  application: broker-amq-app
+  name: broker-amq
+spec:
+  deploymentPlan:
+    image: placeholder
+    jolokiaAgentEnabled: false
+    journalType: nio
+    managementRBACEnabled: true
+    messageMigration: false
+    persistenceEnabled: false
+    requireLogin: false
+    size: 1
+  acceptors:
+  - name: mqtt
+    protocols: mqtt
+    port: 1883
+
+
+# apiVersion: broker.amq.io/v1beta1
+# kind: ActiveMQArtemis
+# metadata:
+#   # name: edge
+#   name: broker-amq
+#   application: edge-broker
+# spec:
+#   adminPassword: openshift
+#   adminUser: user
+#   console:
+#     expose: true  
+#   deploymentPlan:
+#     image: placeholder
+#     size: 1
+#   acceptors:
+#     # - name: amqp
+#     #   protocols: amqp
+#     #   port: 5672
+#     #   expose: true
+#     - name: mqtt
+#       protocols: mqtt
+#       port: 1883
+#       # expose: true
+
+
+
+
+
+# ---
+# apiVersion: route.openshift.io/v1
+# kind: Route
+# metadata:
+#   name: broker-amq-mqtt
+# spec:
+#   to:
+#     kind: Service
+#     name: broker-amq-mqtt-0-svc
+#     weight: 100
+#   port:
+#     targetPort: 1883
+#   tls:
+#     termination: edge
+#   wildcardPolicy: None
+
+
+
+
+# kind: ActiveMQArtemis
+# apiVersion: broker.amq.io/v1beta1
+# metadata:
+#   application: broker-amq-app
+#   name: broker-amq
+# spec:
+#   deploymentPlan:
+#     image: placeholder
+#     jolokiaAgentEnabled: false
+#     journalType: nio
+#     managementRBACEnabled: true
+#     messageMigration: false
+#     persistenceEnabled: false
+#     requireLogin: false
+#     size: 1
+#   acceptors:
+#   - name: mqtt
+#     protocols: mqtt
+#     port: 1883

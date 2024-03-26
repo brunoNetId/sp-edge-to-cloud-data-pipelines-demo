@@ -1,0 +1,30 @@
+---
+- name: Delete Service Interconnect Subscription
+  k8s:
+    state: absent
+    api_version: operators.coreos.com/v1alpha1
+    kind: Subscription
+    name: skupper-operator
+    namespace: '{{ operators_project }}'
+
+- name: Get Service Interconnect CSV name
+  shell: 
+    cmd: >
+      oc get csv -o name -n {{ operators_project }} 
+      | grep skupper-operator 
+      | xargs oc get -o json -n {{ operators_project }}
+      | jq .metadata.name -r
+  register: sub_skupper_name
+
+- name: Print sub_skupper_name
+  debug:
+    msg: "result: {{ sub_skupper_name }} "
+
+- name: Delete Skupper Operator
+  k8s:
+    state: absent
+    api_version: operators.coreos.com/v1alpha1
+    kind: ClusterServiceVersion
+    name: "{{ sub_skupper_name.stdout }}"
+    namespace: '{{ operators_project }}'
+

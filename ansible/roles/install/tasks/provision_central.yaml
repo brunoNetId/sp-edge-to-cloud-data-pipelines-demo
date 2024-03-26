@@ -1,0 +1,45 @@
+---
+- name: ({{ central_namespace }}) Evaluate namespace if not exists
+  k8s:
+    api_version: v1
+    kind: Namespace
+    name: "{{ central_namespace | default('central') }}"
+    state: present
+
+- name: ({{ central_namespace }}) Deploy AMQ Streams instance
+  k8s:
+    namespace: "{{ central_namespace | default('central') }}"
+    state: present
+    resource_definition: "{{ lookup('template', 'central-kafka.yaml.j2') }}"
+
+- name: ({{ central_namespace }}) Deploy Camel Delivery Application
+  k8s:
+    namespace: "{{ central_namespace | default('central') }}"
+    state: present
+    resource_definition: "{{ lookup('template', 'central-camel-delivery.yaml.j2') }}"
+
+- name: Retrieve AWS S3 credentials
+  set_fact:
+    aws_s3_credentials: "{{ query('kubernetes.core.k8s', kind='Secret', resource_name='noobaa-admin', namespace='openshift-storage') | json_query('[0].data')}}"
+
+- name: debug
+  debug:
+    msg: "AWS S3 Credentials: {{ aws_s3_credentials }}"
+
+- name: ({{ central_namespace }}) Deploy Camel Feeder Application
+  k8s:
+    namespace: "{{ central_namespace | default('central') }}"
+    state: present
+    resource_definition: "{{ lookup('template', 'central-camel-feeder.yaml.j2') }}"
+
+- name: ({{ central_namespace }}) Deploy Service Interconnect instance
+  k8s:
+    namespace: "{{ central_namespace | default('central') }}"
+    state: present
+    resource_definition: "{{ lookup('template', 'central-service-interconnect.yaml.j2') }}"
+
+- name: ({{ central_namespace }}) Expose Feeder Service via Interconnect
+  shell: 
+    cmd: >
+      oc annotate service feeder skupper.io/proxy=http -n {{ central_namespace }}
+

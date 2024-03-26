@@ -1,0 +1,30 @@
+---
+apiVersion: project.openshift.io/v1
+kind: Project
+metadata:
+  name: {{ rhoai_project }}
+  labels:
+    kubernetes.io/metadata.name: {{ rhoai_project }}
+    opendatahub.io/dashboard: 'true'
+spec:
+  finalizers:
+    - kubernetes
+---
+# kind: Secret
+# apiVersion: v1
+# metadata:
+#   name: aws-connection-dc1
+#   namespace: {{ rhoai_project }}
+#   labels:
+#     opendatahub.io/dashboard: 'true'
+#     opendatahub.io/managed: 'true'
+#   annotations:
+#     opendatahub.io/connection-type: s3
+#     openshift.io/display-name: dc1
+# data:
+#   AWS_ACCESS_KEY_ID: bWluaW8=
+#   AWS_DEFAULT_REGION: ZXUtd2VzdC0y
+#   AWS_S3_BUCKET: d29ya2JlbmNo
+#   AWS_S3_ENDPOINT: aHR0cDovL21pbmlvLXNlcnZpY2UuY2VudHJhbC5zdmM6OTAwMA==
+#   AWS_SECRET_ACCESS_KEY: bWluaW8xMjM=
+# type: Opaque

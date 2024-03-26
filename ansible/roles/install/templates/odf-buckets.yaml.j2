@@ -1,0 +1,36 @@
+---
+apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: workbench
+  namespace: {{ odf_project }}
+spec:
+  bucketName: workbench
+  storageClassName: openshift-storage.noobaa.io
+# ---
+# apiVersion: objectbucket.io/v1alpha1
+# kind: ObjectBucketClaim
+# metadata:
+#   name: edge1-data
+#   namespace: {{ odf_project }}
+# spec:
+#   bucketName: edge1-data
+#   storageClassName: openshift-storage.noobaa.io
+# ---
+# apiVersion: objectbucket.io/v1alpha1
+# kind: ObjectBucketClaim
+# metadata:
+#   name: edge1-models
+#   namespace: {{ odf_project }}
+# spec:
+#   bucketName: edge1-models
+#   storageClassName: openshift-storage.noobaa.io
+# ---
+# apiVersion: objectbucket.io/v1alpha1
+# kind: ObjectBucketClaim
+# metadata:
+#   name: edge1-ready
+#   namespace: {{ odf_project }}
+# spec:
+#   bucketName: edge1-ready
+#   storageClassName: openshift-storage.noobaa.io

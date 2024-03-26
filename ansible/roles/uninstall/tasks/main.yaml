@@ -1,0 +1,93 @@
+---
+      # Implement your Workload deployment tasks here
+      # - name: vars
+      #   set_fact:
+      #       operators_project: 'workshop-operators'
+      #       che_project: 'che'
+
+      # - name: Uninstall Streams
+      #   include_tasks: remove_workload_streams.yml
+      #   vars:
+      #     operators_project: "workshop-operators"
+
+      # - name: Uninstall Camel-K
+      #   include_tasks: remove_workload_camelk.yml
+      #   vars:
+      #     operators_project: "workshop-operators"
+
+      # - name: Uninstall OpenShift DevSpaces
+      #   include_tasks: remove_workload_devspaces.yml
+      #   vars:
+      #     operators_project: "workshop-operators"
+
+
+
+
+- name: Uninstall Edge1 Deployment
+  include_tasks: remove_edge.yaml
+  vars:
+    edge_namespace: "edge1"
+
+# - name: Uninstall Edge2 Deployment
+#   include_tasks: remove_edge.yaml
+#   vars:
+#     edge_namespace: "edge2"
+
+
+- name: Uninstall OpenShift AI
+  include_tasks: remove_rhoai.yaml
+  vars:
+    rhoai_project: "tf"
+
+- name: Clean S3 buckets
+  include_tasks: remove_odf_buckets.yaml
+  vars:
+    odf_project: "openshift-storage"
+
+- name: Uninstall OpenShift Data Foundation
+  include_tasks: remove_odf.yaml
+  vars:
+    odf_project: "openshift-storage"
+
+- name: Uninstall Central Deployment
+  include_tasks: remove_central.yaml
+  vars:
+    central_namespace: "central"
+
+- name: Uninstall Service Interconnect operator
+  include_tasks: remove_service_interconnect.yaml
+  vars:
+    operators_project: "openshift-operators"
+
+- name: Uninstall AMQ Streams operator
+  include_tasks: remove_streams.yaml
+  vars:
+    operators_project: "workshop-operators"
+
+- name: Uninstall AMQ Broker operator
+  include_tasks: remove_amq.yaml
+  vars:
+    operators_project: "openshift-operators"
+
+- name: Uninstall AMQ Camel-K operator
+  include_tasks: remove_camelk.yaml
+  vars:
+    operators_project: "workshop-operators"
+
+
+
+
+
+# - name: Uninstall DevSpaces
+#   include_tasks: remove_devspaces.yaml
+#   vars:
+#     operators_project: 'workshop-operators'
+#     che_project: "che"
+
+
+
+# Leave this as the last task in the playbook.
+- name: Remove workload tasks complete
+  debug:
+    msg: "Remove Workload Tasks completed successfully."
+  when: not silent|bool

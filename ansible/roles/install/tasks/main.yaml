@@ -1,0 +1,101 @@
+---
+# Figure out paths
+- name: Get OpenShift Apps Domain
+  set_fact:
+    route_subdomain: "{{ query('kubernetes.core.k8s', api_version='config.openshift.io/v1', kind='Ingress', resource_name='cluster') | json_query('[0].spec.appsDomain') }}"
+
+- name: Get OpenShift Domain
+  set_fact:
+    route_subdomain: "{{ query('kubernetes.core.k8s', api_version='config.openshift.io/v1', kind='Ingress', resource_name='cluster') | json_query('[0].spec.domain') }}"
+  when:
+    - route_subdomain | length == 0
+
+- name: Get OpenShift Console
+  set_fact:
+    console_url: "{{ query('kubernetes.core.k8s', api_version='config.openshift.io/v1', kind='Console', resource_name='cluster') | json_query('[0].status.consoleURL')  }}"
+
+- name: Get OpenShift API
+  set_fact:
+    api_url: "{{ query('kubernetes.core.k8s', api_version='config.openshift.io/v1', kind='Infrastructure', resource_name='cluster') | json_query('[0].status.apiServerURL')  }}"
+
+- name: debug
+  debug:
+    msg: 
+    - "Console URL: {{ console_url }}"
+    - "API URL: {{ api_url }}"
+    - "Route Subdomain: {{ route_subdomain }}"
+    - "Admin username: {{ ocp_username }}"
+
+- name: Fetch OpenShift cluster version
+  set_fact:
+    openshift_version: "{{ query('kubernetes.core.k8s', kind='ClusterOperator', resource_name='openshift-apiserver') | json_query('[0].status.versions[?name==`operator`].version | [0]') | split('.') | slice(2) | first | join('.') }}"
+  when: (openshift_version is not defined) or (openshift_version | length == 0)
+
+- name: debug
+  debug:
+    msg: "Setting up for OpenShift version: {{ openshift_version }}"
+
+
+
+
+- name: Provision AMQ Streams
+  ansible.builtin.include_tasks: provision_streams.yaml
+  vars:
+    operators_project: "workshop-operators"
+    snapshot_operator_project: "openshift-marketplace"
+
+- name: Provision Camel K
+  ansible.builtin.include_tasks: provision_camelk.yaml
+  vars:
+    # operators_project: "openshift-operators"
+    operators_project: "workshop-operators"
+    snapshot_operator_project: "openshift-marketplace"
+
+      # - name: Provision OpenShift Dev Spaces
+      #   include_tasks: provision_devspaces.yaml
+      #   vars:
+      #     operators_project: "workshop-operators"
+      #     snapshot_operator_project: "openshift-marketplace"
+      #     che_project: "che"
+
+- name: Provision OpenShift Data Foundation
+  include_tasks: provision_odf.yaml
+  vars:
+    odf_project: openshift-storage
+    snapshot_operator_project: "openshift-marketplace"
+
+- name: Provision AI Project
+  include_tasks: provision_rhoai.yaml
+  vars:
+    rhoai_project: tf
+    snapshot_operator_project: "openshift-marketplace"
+
+- name: Provision AMQ Broker
+  include_tasks: provision_broker.yaml
+  vars:
+    operators_project: "openshift-operators"
+    snapshot_operator_project: "openshift-marketplace"
+
+- name: Provision Service Interconnect
+  include_tasks: provision_service_interconnect.yaml
+  vars:
+    operators_project: "openshift-operators"
+    snapshot_operator_project: "openshift-marketplace"
+
+- name: Provision Central infra
+  include_tasks: provision_central.yaml
+  vars:
+    central_namespace: central
+
+- name: Provision Edge1 infra
+  include_tasks: provision_edge.yaml
+  vars:
+    edge_namespace: edge1
+    odf_project: openshift-storage
+
+# - name: Provision Edge2 infra
+#   include_tasks: provision_edge.yaml
+#   vars:
+#     edge_namespace: edge2
+#     odf_project: openshift-storage
+

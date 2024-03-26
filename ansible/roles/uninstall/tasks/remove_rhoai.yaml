@@ -1,0 +1,65 @@
+---
+- name: Delete RHOAI Workbench
+  k8s:
+    state: absent
+    api_version: kubeflow.org/v1beta1
+    kind: Notebook
+    name: wb1
+    namespace: '{{ rhoai_project }}'
+    wait: yes
+
+- name: Delete RHOAI Pipeline Server
+  k8s:
+    state: absent
+    api_version: v1alpha1
+    kind: DataSciencePipelinesApplication
+    name: pipelines-definition
+    namespace: '{{ rhoai_project }}'
+    wait: yes
+
+- name: Delete RHOAI PersistentVolumeClaim
+  k8s:
+    state: absent
+    api_version: v1
+    kind: PersistentVolumeClaim
+    name: wb1
+    namespace: '{{ rhoai_project }}'
+    wait: yes
+
+- name: Collect all PipelineRun instances
+  k8s_info:
+    api_version: tekton.dev/v1beta1
+    kind: PipelineRun
+    namespace: '{{ rhoai_project }}'
+  register: pipelinerun_found
+
+- name: Debug CheCluster instances
+  debug:
+    msg: "{{item.metadata.name}}"
+  loop: '{{ pipelinerun_found.resources }}'
+
+- name: Delete PipelineRun instances
+  when: pipelinerun_found.api_found is true
+  k8s:
+    state: absent
+    api_version: tekton.dev/v1beta1
+    kind: PipelineRun
+    name: '{{item.metadata.name}}'
+    namespace: '{{ rhoai_project }}'
+  loop: '{{ pipelinerun_found.resources }}'
+
+- name: Delete RHOAI Pipeline PersistentVolumeClaim
+  k8s:
+    state: absent
+    api_version: v1
+    kind: PersistentVolumeClaim
+    name: pipeline-pvc
+    namespace: '{{ rhoai_project }}'
+    wait: yes
+
+- name: Delete namespace {{ rhoai_project }}
+  k8s:
+    state: absent
+    api_version: v1
+    kind: Namespace
+    name: '{{ rhoai_project }}'

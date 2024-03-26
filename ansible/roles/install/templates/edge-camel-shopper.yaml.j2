@@ -1,0 +1,133 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: shopper-training-options
+data:
+  training-options.json: |
+    [
+      {
+        "item": "tea-green",
+        "label": "(Bali) Green Tea"
+      }
+    ]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    app.openshift.io/vcs-url: <<unknown>>
+    app.openshift.io/connects-to: tf-server
+  labels:
+    app.kubernetes.io/name: shopper
+    app.kubernetes.io/version: 1.0.0
+    app.openshift.io/runtime: camel
+    app.kubernetes.io/managed-by: quarkus
+  name: shopper
+spec:
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    app.kubernetes.io/name: shopper
+    app.kubernetes.io/version: 1.0.0
+  type: ClusterIP
+---
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  annotations:
+    app.openshift.io/vcs-url: <<unknown>>
+    # app.openshift.io/connects-to: tf-server
+    app.openshift.io/connects-to: >-
+      ["tf-server",{"apiVersion":"apps/v1","kind":"Deployment","name":"price-engine"}]
+    
+  labels:
+    app.kubernetes.io/name: shopper
+    app.kubernetes.io/version: 1.0.0
+    app.openshift.io/runtime: camel
+    app.kubernetes.io/managed-by: quarkus
+  name: shopper
+spec:
+  replicas: 1
+  selector:
+    app.kubernetes.io/name: shopper
+    app.kubernetes.io/version: 1.0.0
+  template:
+    metadata:
+      annotations:
+        app.openshift.io/vcs-url: <<unknown>>
+        app.openshift.io/connects-to: tf-server
+      labels:
+        app.openshift.io/runtime: camel
+        app.kubernetes.io/managed-by: quarkus
+        app.kubernetes.io/name: shopper
+        app.kubernetes.io/version: 1.0.0
+    spec:
+      containers:
+        - env:
+            - name: KUBERNETES_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: JAVA_APP_JAR
+              value: /deployments/quarkus-run.jar
+          # image: quay.io/bmesegue/testshopper:1.0.0
+          image: quay.io/redhatintegration/sp-ai-camel-shopper:1.0.0
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /q/health/live
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 10
+          name: shopper
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /q/health/ready
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 10
+          startupProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /q/health/started
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 10
+          volumeMounts:
+            - mountPath: /deployments/config
+              name: volume1
+              readOnly: false
+      volumes:
+        - configMap:
+            defaultMode: 384
+            name: shopper-training-options
+            optional: false
+          name: volume1
+  # triggers:
+  #   - imageChangeParams:
+  #       automatic: true
+  #       containerNames:
+  #         - shopper
+  #       from:
+  #         kind: ImageStreamTag
+  #         name: shopper:1.0.0
+  #     type: ImageChange

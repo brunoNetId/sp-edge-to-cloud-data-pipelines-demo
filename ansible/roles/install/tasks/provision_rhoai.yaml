@@ -1,0 +1,302 @@
+---
+# - name: Evaluate {{ rhoai_project }} project if not exists 
+#   k8s:
+#     api_version: project.openshift.io/v1
+#     kind: Project
+#     # name: '{{ rhoai_project }}'
+#     name: 'atest'
+#     resource_definition:
+#       labels:
+#         openshift.io/cluster-monitoring: 'true'
+#         opendatahub.io/dashboard: 'true'
+#     state: present
+
+- name: Create RHOAI Project
+  k8s:
+    state: present
+    resource_definition: "{{ lookup('template', 'rhoai-project.yaml.j2') }}"
+
+- name: Retrieve AWS S3 credentials
+  set_fact:
+    aws_s3_credentials: "{{ query('kubernetes.core.k8s', kind='Secret', resource_name='noobaa-admin', namespace='openshift-storage') | json_query('[0].data')}}"
+
+- name: debug
+  debug:
+    msg: "AWS S3 Credentials: AWS_ACCESS_KEY_ID = {{ aws_s3_credentials }}"
+
+
+- name: create k8s secret aws-connection-dc1
+  k8s:
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: aws-connection-dc1
+        namespace: "{{ rhoai_project }}"
+        labels:
+          opendatahub.io/dashboard: 'true'
+          opendatahub.io/managed: 'true'
+        annotations:
+          opendatahub.io/connection-type: s3
+          openshift.io/display-name: dc1
+      data:
+        AWS_ACCESS_KEY_ID: "{{ aws_s3_credentials.AWS_ACCESS_KEY_ID }}"
+        AWS_SECRET_ACCESS_KEY: "{{ aws_s3_credentials.AWS_SECRET_ACCESS_KEY }}"
+        AWS_S3_BUCKET: d29ya2JlbmNo
+        AWS_DEFAULT_REGION: ZXUtd2VzdC0y
+        AWS_S3_ENDPOINT: aHR0cDovL3MzLm9wZW5zaGlmdC1zdG9yYWdlLnN2Yzo4MA==
+      type: Opaque
+    state: present
+
+
+          # - name: Create RHOAI Data Connection
+          #   k8s:
+          #     state: present
+          #     resource_definition: "{{ lookup('template', 'rhoai-data-connection.yaml.j2') }}"
+
+- name: Create RHOAI Pipeline Server
+  k8s:
+    state: present
+    resource_definition: "{{ lookup('template', 'rhoai-pipeline-server.yaml.j2') }}"
+
+
+- name: "collect Pipeline Server info"
+  k8s_info:
+    api_version: datasciencepipelinesapplications.opendatahub.io/v1alpha1
+    kind: DataSciencePipelinesApplication
+
+    namespace: "{{ rhoai_project }}"
+    name: pipelines-definition
+  register: psinfo
+
+# - name: debug1
+#   debug:
+#     msg: "info = {{ psinfo.resources[0].status.conditions | selectattr('type','equalto','Ready') }}"
+
+
+# - name: debug2
+#   debug:
+#     msg: "info = {{ (psinfo.resources[0].status.conditions | selectattr('type','equalto','Ready') | list | first).status }}"
+
+
+- name: "Wait until Pipeline Server is active"
+  k8s_info:
+    api_version: datasciencepipelinesapplications.opendatahub.io/v1alpha1
+    kind: DataSciencePipelinesApplication
+
+    namespace: "{{ rhoai_project }}"
+    name: pipelines-definition
+  register: r_pipelineserver
+  retries: 30
+  delay: 10
+  until:
+   - r_pipelineserver.resources is defined
+   - r_pipelineserver.resources | length | int > 0
+   - r_pipelineserver.resources[0].status is defined
+   - (r_pipelineserver.resources[0].status.conditions | selectattr('type','equalto','Ready') | list | first).status == "True"
+
+
+
+
+
+# - set_fact:
+#     pod_events: "{{ json_query(config) }}"
+#   vars:
+#     events_query: >-
+#       config[?
+#         involvedObject.apiVersion == `v1` && 
+#         involvedObject.kind == `Pod` && 
+#         involvedObject.name==`my-name`
+#       ].{ 
+#         firstTimestamp: firstTimestamp, 
+#         lastTimestamp: lastTimestamp, 
+#         count: count, 
+#         reason: reason, 
+#         message: message 
+#       }
+
+# - debug:
+#     var: pod_events
+
+
+
+- name: Define Config JSON value
+  set_fact:
+    pipeline_config: |
+      {
+        "display_name": "Data Science Pipeline",
+        "metadata": {
+          "tags": [],
+          "display_name": "Data Science Pipeline",
+          "engine": "Tekton",
+          "auth_type": "KUBERNETES_SERVICE_ACCOUNT_TOKEN",
+          "api_endpoint": "https://ds-pipeline-pipelines-definition-tf.{{ route_subdomain }}",
+          "public_api_endpoint": "https://rhods-dashboard-redhat-ods-applications.{{ route_subdomain }}/pipelineRuns/{{ rhoai_project }}/pipelineRun/view/",
+          "cos_auth_type": "KUBERNETES_SECRET",
+          "cos_secret": "aws-connection-dc1",
+          "cos_endpoint": "http://s3.openshift-storage.svc:80",
+          "cos_bucket": "workbench",
+          "cos_username": "{{ aws_s3_credentials.AWS_ACCESS_KEY_ID | b64decode }}",
+          "cos_password": "{{ aws_s3_credentials.AWS_SECRET_ACCESS_KEY | b64decode }}",
+          "runtime_type": "KUBEFLOW_PIPELINES"
+        },
+        "schema_name": "kfp"
+      }
+
+- name: debug
+  debug:
+    msg: "JSON Config = {{ pipeline_config | to_nice_json }}"
+
+
+- name: create k8s secret ds-pipeline-config
+  k8s:
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: ds-pipeline-config
+        namespace: "{{ rhoai_project }}"
+      data:
+        odh_dsp.json: "{{ pipeline_config | to_nice_json | b64encode }}"
+      type: Opaque
+    state: present
+
+
+
+
+- name: "Wait until Secret for Pipeline config is available."
+  k8s_info:
+    api_version: v1
+    kind: Secret
+    namespace: "{{ rhoai_project }}"
+    name: ds-pipeline-config
+  register: r_secretpipeline
+  retries: 100
+  delay: 10
+  until:
+   - r_secretpipeline.resources is defined
+   - r_secretpipeline.resources | length | int > 0
+
+
+- name: Create RHOAI Workbench
+  k8s:
+    state: present
+    resource_definition: "{{ lookup('template', 'rhoai-workbench.yaml.j2') }}"
+
+
+# - name: "Wait until Workbench is active"
+#   k8s_info:
+#     api_version: apps/v1
+#     kind: StatefulSet
+#     namespace: "{{ rhoai_project }}"
+#     name: wb1
+#   register: wb1
+
+# - name: debug workbench
+#   debug:
+#    msg: workbench is {{ wb1.resources[0] }}
+
+- name: "Wait until Workbench is active"
+  k8s_info:
+    api_version: apps/v1
+    kind: StatefulSet
+    namespace: "{{ rhoai_project }}"
+    name: wb1
+  register: wb1
+  retries: 30
+  delay: 10
+  until:
+   - wb1.resources is defined
+   - wb1.resources | length | int > 0
+   - wb1.resources[0].status.readyReplicas is defined
+   - wb1.resources[0].status.readyReplicas == 1
+
+- name: Copy Pipeline definition to Workbench
+  shell: 
+    cmd: "oc cp ../workbench/. wb1-0:. -n tf"
+  # register: sub_token_request
+
+
+- name: Create Model Training Pipeline
+  k8s:
+    state: present
+    resource_definition: "{{ lookup('template', 'rhoai-pipeline.yaml.j2') }}"
+
+# ATTENTION: include/exclude parameters are not folder friendly
+- name: Upload Default Pipeline Assets to S3-Central
+  s3_sync:
+    endpoint_url: "https://s3-openshift-storage.{{ route_subdomain }}"
+    aws_access_key: "{{ aws_s3_credentials.AWS_ACCESS_KEY_ID | b64decode }}"
+    aws_secret_key: "{{ aws_s3_credentials.AWS_SECRET_ACCESS_KEY | b64decode }}"
+    bucket: "workbench"
+    file_root: ../pipeline/
+    # key_prefix: models/tea_model_b64/1
+  register: s3entries
+
+# - name: create TriggerTemplate
+#   k8s:
+#     state: present
+#     definition:
+#       apiVersion: triggers.tekton.dev/v1alpha1
+#       kind: TriggerTemplate
+#       metadata:
+#         name: train-model-template
+#         namespace: "{{ rhoai_project }}"
+#       spec:
+#         params:
+#         - name: id-edge
+#           description: Identifier of target edge enviroment.
+#         resourcetemplates:
+#           - apiVersion: tekton.dev/v1beta1
+#             kind: PipelineRun
+#             metadata:
+#               generateName: train-model-run-
+#             spec:
+#               pipelineRef:
+#                 name: train-model
+#               params:
+#               - name: s3bucket_data
+#                 value: $(tt.params.id-edge)-data
+#               - name: s3bucket_models
+#                 value: $(tt.params.id-edge)-models
+#               - name: s3bucket_ready
+#                 value: $(tt.params.id-edge)-ready
+#               - name: working_dir
+#                 value: /data/$(tt.params.id-edge)/
+#               - name: aws_access_key
+#                 value: "{{ aws_s3_credentials.AWS_ACCESS_KEY_ID | b64decode }}"
+#               - name: aws_secret_key
+#                 value: "{{ aws_s3_credentials.AWS_SECRET_ACCESS_KEY | b64decode }}"
+
+# - name: create TriggerBinding
+#   k8s:
+#     state: present
+#     definition:
+#       apiVersion: triggers.tekton.dev/v1alpha1
+#       kind: TriggerBinding
+#       metadata:
+#         name: train-model-binding
+#         namespace: "{{ rhoai_project }}"
+#       spec:
+#         params:
+#           - name: id-edge
+#             value: $(body.id-edge)
+
+# - name: create Event Listener
+#   k8s:
+#     state: present
+#     definition:
+#       apiVersion: triggers.tekton.dev/v1alpha1
+#       kind: EventListener
+#       metadata:
+#         name: train-model-listener
+#         namespace: "{{ rhoai_project }}"
+#       spec:
+#         serviceAccountName: pipeline
+#         triggers:
+#           - name: trigger-listener
+#             bindings:
+#             - ref: train-model-binding
+#             template:
+#               ref: train-model-template      
+

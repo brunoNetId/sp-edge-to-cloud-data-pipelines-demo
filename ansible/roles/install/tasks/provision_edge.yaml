@@ -1,0 +1,301 @@
+---
+- name: ({{ edge_namespace }}) Evaluate namespace if not exists
+  k8s:
+    api_version: v1
+    kind: Namespace
+    name: "{{ edge_namespace | default('edge') }}"
+    state: present
+
+- name: ({{ edge_namespace }}) Deploy AMQ Broker instance
+  k8s:
+    namespace: "{{ edge_namespace | default('edge') }}"
+    state: present
+    resource_definition: "{{ lookup('template', 'edge-broker.yaml.j2') }}"
+
+- name: ({{ edge_namespace }}) Deploy S3 Storage
+  k8s:
+    namespace: "{{ edge_namespace | default('edge') }}"
+    state: present
+    resource_definition: "{{ lookup('template', 'edge-s3-storage.yaml.j2') }}"
+
+- name: ({{ edge_namespace }}) "Wait until Minio is active"
+  k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ edge_namespace }}"
+    name: minio
+  register: r_minio
+  retries: 30
+  delay: 10
+  until:
+   - r_minio.resources is defined
+   - r_minio.resources | length | int > 0
+   - r_minio.resources[0].status is defined
+   - (r_minio.resources[0].status.conditions | selectattr('type','equalto','Available') | list | first).status == "True"
+
+- name: ({{ edge_namespace }}) Create PRODUCTION bucket
+  amazon.aws.s3_bucket:
+    endpoint_url: "https://minio-api-{{ edge_namespace }}.{{ route_subdomain }}"
+    aws_access_key: "minio"
+    aws_secret_key: "minio123"
+    name: "production"
+    state: present
+
+- name: ({{ edge_namespace }}) Create DATA bucket
+  amazon.aws.s3_bucket:
+    endpoint_url: "https://minio-api-{{ edge_namespace }}.{{ route_subdomain }}"
+    aws_access_key: "minio"
+    aws_secret_key: "minio123"
+    name: "data"
+    state: present
+
+- name: ({{ edge_namespace }}) Create VALID bucket
+  amazon.aws.s3_bucket:
+    endpoint_url: "https://minio-api-{{ edge_namespace }}.{{ route_subdomain }}"
+    aws_access_key: "minio"
+    aws_secret_key: "minio123"
+    name: "valid"
+    state: present
+
+- name: ({{ edge_namespace }}) Create UNCLASSIFIED bucket
+  amazon.aws.s3_bucket:
+    endpoint_url: "https://minio-api-{{ edge_namespace }}.{{ route_subdomain }}"
+    aws_access_key: "minio"
+    aws_secret_key: "minio123"
+    name: "unclassified"
+    state: present
+
+# ATTENTION: include/exclude parameters are not folder friendly
+- name: ({{ edge_namespace }}) Upload Model v1 to S3
+  s3_sync:
+    endpoint_url: "https://minio-api-{{ edge_namespace }}.{{ route_subdomain }}"
+    aws_access_key: "minio"
+    aws_secret_key: "minio123"
+    bucket: production
+    file_root: ../models/tea_model_b64/1
+    key_prefix: models/tea_model_b64/1
+    # exclude: "*"
+    # include: "*/*/tea_model_b64/1/fingerprint.pb"
+    # include: "models/tea_model_b64/1/fingerprint.pb"
+    # include: "*/*/*/fingerprint.pb"
+    # include: "1?fingerprint.pb"
+    # include: "models/tea_model_b64/1/*"
+    # exclude: "models/tea_model_b64/5/*"
+    # include: "tea_model_b64/1/*"
+    # exclude: "tea_model_b64/5/*"
+    # include: "/models/tea_model_b64/1"
+    # exclude: "*/5/*"
+  register: s3entries
+
+# - name: mydebug
+#   debug:
+#     msg: my output {{s3entries}}
+
+- name: ({{ edge_namespace }}) Retrieve AWS S3 credentials
+  set_fact:
+    aws_s3_credentials: "{{ query('kubernetes.core.k8s', kind='Secret', resource_name='noobaa-admin', namespace='openshift-storage') | json_query('[0].data')}}"
+
+# ATTENTION: include/exclude parameters are not folder friendly
+- name: ({{ edge_namespace }}) Upload Default Model (v1) to S3-Central
+  s3_sync:
+    endpoint_url: "https://s3-openshift-storage.{{ route_subdomain }}"
+    aws_access_key: "{{ aws_s3_credentials.AWS_ACCESS_KEY_ID | b64decode }}"
+    aws_secret_key: "{{ aws_s3_credentials.AWS_SECRET_ACCESS_KEY | b64decode }}"
+    bucket: "{{ edge_namespace }}-models"
+    file_root: ../models/tea_model_b64/1
+    key_prefix: models/tea_model_b64/1
+  register: s3entries
+
+# - name: mydebug
+#   debug:
+#     msg: my output {{s3entries}}
+
+- name: ({{ edge_namespace }}) Upload Default Training Data to S3-Central
+  s3_sync:
+    endpoint_url: "https://s3-openshift-storage.{{ route_subdomain }}"
+    aws_access_key: "{{ aws_s3_credentials.AWS_ACCESS_KEY_ID | b64decode }}"
+    aws_secret_key: "{{ aws_s3_credentials.AWS_SECRET_ACCESS_KEY | b64decode }}"
+    bucket: "{{ edge_namespace }}-data"
+    file_root: ../dataset/images
+    key_prefix: images
+  register: s3entries
+
+- name: ({{ edge_namespace }}) Upload New Product Training Data to S3-Edge
+  s3_sync:
+    endpoint_url: "https://minio-api-{{ edge_namespace }}.{{ route_subdomain }}"
+    aws_access_key: "minio"
+    aws_secret_key: "minio123"
+    bucket: "data"
+    file_root: ../dataset-new/images
+    key_prefix: images
+  register: s3entries
+
+- name: ({{ edge_namespace }}) Deploy TensorFlow Server
+  k8s:
+    namespace: "{{ edge_namespace | default('edge') }}"
+    state: present
+    resource_definition: "{{ lookup('template', 'edge-tensorflow-server.yaml.j2') }}"
+
+- name: ({{ edge_namespace }}) Evaluate AMQ Broker MQTT route
+  k8s:
+    namespace: "{{ edge_namespace | default('edge') }}"
+    state: present
+    definition:
+      apiVersion: route.openshift.io/v1
+      kind: Route
+      metadata:
+        name: broker-amq-mqtt
+      spec:
+        host: broker-amq-mqtt-{{ edge_namespace }}.{{ route_subdomain }}
+        to:
+          kind: Service
+          name: broker-amq-mqtt-0-svc
+          weight: 100
+        port:
+          targetPort: mqtt-0
+        tls:
+          termination: edge
+        wildcardPolicy: None
+
+- name: ({{ edge_namespace }}) Deploy AMQ Broker instance
+  k8s:
+    namespace: "{{ edge_namespace | default('edge') }}"
+    state: present
+    resource_definition: "{{ lookup('template', 'edge-camel-price.yaml.j2') }}"
+
+- name: ({{ edge_namespace }}) Deploy Shopper Smart App
+  k8s:
+    namespace: "{{ edge_namespace | default('edge') }}"
+    state: present
+    resource_definition: "{{ lookup('template', 'edge-camel-shopper.yaml.j2') }}"
+
+- name: ({{ edge_namespace }}) Evaluate Shopper route
+  k8s:
+    namespace: "{{ edge_namespace | default('edge') }}"
+    state: present
+    definition:
+      apiVersion: route.openshift.io/v1
+      kind: Route
+      metadata:
+        name: camel-edge
+      spec:
+        host: camel-edge-{{ edge_namespace }}.{{ route_subdomain }}
+        to:
+          kind: Service
+          name: shopper
+          weight: 100
+        port:
+          targetPort: http
+        tls:
+          termination: edge
+        wildcardPolicy: None
+
+- name: ({{ edge_namespace }}) Create Skupper Site
+  k8s:
+    namespace: "{{ edge_namespace | default('edge') }}"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: skupper-site
+
+- name: ({{ edge_namespace }}) Check Central Token not present
+  k8s_info:
+    api_version: v1
+    kind: Secret
+    namespace: "{{ edge_namespace }}"
+    name: central-token
+  register: token_missing
+
+- name: ({{ edge_namespace }}) Check Central Token not present
+  set_fact:
+    token_missing: "{{ token_missing.resources | length == 0 }}"
+
+
+# - name: ({{ edge_namespace }}) Check Central Token not present
+#   set_fact:
+#     c_token: "{{ query('kubernetes.core.k8s', kind='Secret', resource_name='central-token-NOT', namespace='{{ edge_namespace }}') | json_query('resources') | length | int == 0}}"
+
+
+- name: print token
+  debug:
+    msg: "Is token missing: {{ token_missing }}"
+
+- name: ({{ edge_namespace }}) Get Central Connection Token
+  when: token_missing
+  shell: 
+    cmd: >
+      oc get secret -n central central-token -o yaml  
+      | yq 'del(.metadata.namespace)' 
+      | yq 'del(.metadata.resourceVersion)'
+  register: sub_token_request
+
+# - name: Debug Token
+#   debug:
+#     msg: show token {{ sub_token_request.stdout}}
+
+- name: ({{ edge_namespace }}) Install Skupper Connection Token (to central)
+  when: token_missing
+  k8s:
+    namespace: "{{ edge_namespace | default('edge') }}"
+    state: present
+    resource_definition: "{{ sub_token_request.stdout }}"
+
+
+- name: ({{ edge_namespace }}) Check S3-Central Token not present
+  k8s_info:
+    api_version: v1
+    kind: Secret
+    namespace: "{{ edge_namespace }}"
+    name: s3-central-token
+  register: token_missing
+
+- name: ({{ edge_namespace }}) Check S3-Central Token not present
+  set_fact:
+    token_missing: "{{ token_missing.resources | length == 0 }}"
+
+
+- name: ({{ edge_namespace }}) Get S3-Central Connection Token
+  when: token_missing
+  shell: 
+    cmd: >
+      oc get secret s3-central-token -n openshift-storage -o yaml  
+      | yq 'del(.metadata.namespace)' 
+      | yq 'del(.metadata.resourceVersion)'
+  register: sub_s3_token_request
+
+# - name: Debug Token
+#   debug:
+#     msg: show token {{ sub_token_request.stdout}}
+
+- name: ({{ edge_namespace }}) Install Skupper Connection Token (to S3-central)
+  when: token_missing
+  k8s:
+    namespace: "{{ edge_namespace }}"
+    state: present
+    resource_definition: "{{ sub_s3_token_request.stdout }}"
+
+
+- name: ({{ edge_namespace }}) Deploy Camel Monitor Application
+  k8s:
+    namespace: "{{ edge_namespace }}"
+    state: present
+    resource_definition: "{{ lookup('template', 'edge-camel-monitor.yaml.j2') }}"
+
+
+- name: ({{ edge_namespace }}) Retrieve AWS S3 credentials
+  set_fact:
+    aws_s3_credentials: "{{ query('kubernetes.core.k8s', kind='Secret', resource_name='noobaa-admin', namespace='openshift-storage') | json_query('[0].data')}}"
+
+- name: ({{ edge_namespace }}) debug
+  debug:
+    msg: "AWS S3 Credentials: {{ aws_s3_credentials }}"
+
+- name: ({{ edge_namespace }}) Deploy Camel Manager Application
+  k8s:
+    namespace: "{{ edge_namespace }}"
+    state: present
+    resource_definition: "{{ lookup('template', 'edge-camel-manager.yaml.j2') }}"
+
+

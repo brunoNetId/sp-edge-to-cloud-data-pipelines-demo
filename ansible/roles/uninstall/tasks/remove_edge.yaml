@@ -1,0 +1,172 @@
+- name: ({{ edge_namespace }}) Camel Monitor Application
+  k8s:
+    state: absent
+    kind: Integration
+    api_version: camel.apache.org/v1
+    name: monitor
+    namespace: '{{ edge_namespace }}'
+    wait: yes
+
+- name: ({{ edge_namespace }}) Delete Shopper Application
+  k8s:
+    state: absent
+    kind: DeploymentConfig
+    api_version: v1
+    name: shopper
+    namespace: '{{ edge_namespace }}'
+    wait: yes
+
+- name: ({{ edge_namespace }}) Delete Shopper Route
+  k8s:
+    state: absent
+    kind: Route
+    api_version: route.openshift.io/v1
+    name: camel-edge
+    namespace: '{{ edge_namespace }}'
+    wait: yes
+
+- name: ({{ edge_namespace }}) Delete Price Engine
+  k8s:
+    state: absent
+    kind: Integration
+    api_version: camel.apache.org/v1
+    name: price-engine
+    namespace: '{{ edge_namespace }}'
+    wait: yes
+
+- name: ({{ edge_namespace }}) Delete Price Catalogue
+  k8s:
+    state: absent
+    kind: ConfigMap
+    api_version: v1
+    name: catalogue
+    namespace: '{{ edge_namespace }}'
+    wait: yes
+
+- name: ({{ edge_namespace }}) Delete Artemis broker
+  k8s:
+    state: absent
+    api_version: broker.amq.io/v1beta1
+    kind: ActiveMQArtemis
+    name: broker-amq
+    namespace: '{{ edge_namespace }}'
+    wait: yes
+
+- name: ({{ edge_namespace }}) Delete MQTT Route
+  k8s:
+    state: absent
+    kind: Route
+    api_version: route.openshift.io/v1
+    name: broker-amq-mqtt
+    namespace: '{{ edge_namespace }}'
+    wait: yes
+
+- name: ({{ edge_namespace }}) Delete TensorFlow Route
+  k8s:
+    state: absent
+    kind: Route
+    api_version: route.openshift.io/v1
+    name: tf-server
+    namespace: '{{ edge_namespace }}'
+    wait: yes
+
+- name: ({{ edge_namespace }}) Delete TensorFlow Service
+  k8s:
+    state: absent
+    kind: Service
+    api_version: v1
+    name: tf-server
+    namespace: '{{ edge_namespace }}'
+    wait: yes
+
+- name: ({{ edge_namespace }}) Delete TensorFlow Deployment
+  k8s:
+    state: absent
+    kind: Deployment
+    api_version: apps/v1
+    name: tf-server
+    namespace: '{{ edge_namespace }}'
+    wait: yes
+
+
+- name: ({{ edge_namespace }}) Delete Minio Route (api)
+  k8s:
+    state: absent
+    kind: Route
+    api_version: route.openshift.io/v1
+    name: minio-api
+    namespace: '{{ edge_namespace }}'
+    wait: yes
+
+- name: ({{ edge_namespace }}) Delete Minio Route (ui)
+  k8s:
+    state: absent
+    kind: Route
+    api_version: route.openshift.io/v1
+    name: minio-ui
+    namespace: '{{ edge_namespace }}'
+    wait: yes
+
+- name: ({{ edge_namespace }}) Delete Minio Service
+  k8s:
+    state: absent
+    kind: Service
+    api_version: v1
+    name: minio-service
+    namespace: '{{ edge_namespace }}'
+    wait: yes
+
+- name: ({{ edge_namespace }}) Delete Minio Deployment
+  k8s:
+    state: absent
+    kind: Deployment
+    api_version: apps/v1
+    name: minio
+    namespace: '{{ edge_namespace }}'
+    wait: yes
+
+- name: ({{ edge_namespace }}) Delete Minio Secret
+  k8s:
+    state: absent
+    kind: Secret
+    api_version: v1
+    name: minio-secret
+    namespace: '{{ edge_namespace }}'
+    wait: yes
+
+- name: ({{ edge_namespace }}) Delete Minio PVC
+  k8s:
+    state: absent
+    kind: PersistentVolumeClaim
+    api_version: v1
+    name: minio-pvc
+    namespace: '{{ edge_namespace }}'
+    wait: yes
+
+- name: ({{ edge_namespace }}) Delete Skupper Site
+  k8s:
+    state: absent
+    kind: ConfigMap
+    api_version: v1
+    name: skupper-site
+    namespace: '{{ edge_namespace }}'
+    wait: yes
+
+- name: ({{ edge_namespace }}) Delete namespace
+  k8s:
+    state: absent
+    api_version: v1
+    kind: Namespace
+    name: '{{ edge_namespace }}'
+
+- name: Delete buckets at S3-Central 
+  shell: 
+    cmd: >
+      oc get obc -n openshift-storage -o name  
+      | grep {{ edge_namespace }} 
+      | xargs oc delete -n openshift-storage
+  register: deleted_buckets
+
+- name: Print deleted_buckets
+  debug:
+    msg: "result: {{ deleted_buckets }} "

@@ -1,0 +1,42 @@
+- name: ({{ central_namespace }}) Delete Feeder Application
+  k8s:
+    state: absent
+    kind: DeploymentConfig
+    api_version: v1
+    name: feeder
+    namespace: '{{ central_namespace }}'
+    wait: yes
+
+- name: ({{ central_namespace }}) Delete AMQ-Streams instance
+  k8s:
+    state: absent
+    kind: Kafka
+    api_version: kafka.strimzi.io/v1beta2
+    name: my-cluster
+    namespace: '{{ central_namespace }}'
+    wait: yes
+
+- name: ({{ central_namespace }}) Delete Skupper Site
+  k8s:
+    state: absent
+    kind: ConfigMap
+    api_version: v1
+    name: skupper-site
+    namespace: '{{ central_namespace }}'
+    wait: yes
+
+- name: ({{ central_namespace }}) Delete Skupper Connection Token
+  k8s:
+    state: absent
+    kind: Secret
+    api_version: v1
+    name: central-token
+    namespace: '{{ central_namespace }}'
+    wait: yes
+
+- name: ({{ central_namespace }}) Delete namespace
+  k8s:
+    state: absent
+    api_version: v1
+    kind: Namespace
+    name: '{{ central_namespace }}'

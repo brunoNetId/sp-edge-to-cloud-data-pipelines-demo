@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- camel-k: language=xml -->
+
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns="http://camel.apache.org/schema/spring"
+        xsi:schemaLocation="
+            http://camel.apache.org/schema/spring
+            https://camel.apache.org/schema/spring/camel-spring.xsd">
+
+
+    <route id="whoami">
+        <from uri="timer:whoami?repeatCount=1"/>
+        <!-- <log message="I am {{edge.id}}"/> -->
+        <log message="I am {{env:NAMESPACE}}"/>
+    </route>
+
+
+    <route id="s3-reader">
+        <!-- <from uri="aws2-s3:{{edge.id}}-ready"/> -->
+        <!-- <from uri="aws2-s3:{{env:NAMESPACE}}-ready"/> -->
+        <!-- <from uri="aws2-s3:s3-central:80"/> -->
+        <!-- <from uri="aws2-s3:edge1-ready"/> -->
+        <!-- <from uri="aws2-s3:edge1-ready.bucket?{{camel.uri.s3-central.parameters}}"/> -->
+        <from uri="aws2-s3:first.bucket?{{camel.uri.s3-central.parameters}}"/>
+
+
+        <log message="file is: ${header.CamelAwsS3Key}"/>
+
+<stop/>
+
+        <filter>
+            <simple>${header.CamelAwsS3Key} endsWith '/'</simple>
+            <log message="ignoring folder: ${header.CamelAwsS3Key}"/>
+            <stop/>
+        </filter>
+
+        <setProperty name="name">
+            <simple>${header.CamelAwsS3Key}</simple>
+        </setProperty>
+
+        <removeHeaders pattern="*"/>
+        <to uri="direct:store-s3"/>
+    </route>
+
+
+
+    <route id="s3-writer">
+        <from uri="direct:store-s3"/>
+
+        <setHeader name="CamelAwsS3Key">
+            <simple>${exchangeProperty.name}</simple>
+        </setHeader>
+
+        <setHeader name="CamelAwsS3ContentType">
+            <simple>application/octet-stream</simple>
+        </setHeader>
+
+        <log message="uploading: ${header.CamelAwsS3Key}"/>
+
+        <to uri="aws2-s3:production?{{camel.uri.s3.parameters}}"/>
+
+
+        <log message="uploaded: ${header.CamelAwsS3Key}"/>
+
+        <!-- Models contain multiple files. We send only 1 notification -->
+        <when>
+            <simple>${header.CamelAwsS3Key} contains "saved_model.pb"</simple>
+            <setBody>
+                <simple>{"name":"pushmodel"}</simple>
+            </setBody>
+            <!-- <to uri="{{mqtt.uri.monitor}}"/> -->
+            <to uri="paho-mqtt5:monitor?brokerUrl=tcp://broker-amq-mqtt-0-svc:1883"/>
+        </when>
+    </route>
+
+
+</routes>

@@ -1,0 +1,51 @@
+---
+- name: Delete AMQ Broker Subscription
+  k8s:
+    state: absent
+    api_version: operators.coreos.com/v1alpha1
+    kind: Subscription
+    name: amq-broker
+    namespace: '{{ operators_project }}'
+
+- name: Get AMQ Broker CSV name
+  shell: 
+    cmd: >
+      oc get csv -o name -n {{ operators_project }} 
+      | grep amq-broker 
+      | xargs oc get -o json -n {{ operators_project }}
+      | jq .metadata.name -r
+  register: sub_broker_name
+
+- name: Print sub_broker_name
+  debug:
+    msg: "result: {{ sub_broker_name }} "
+
+- name: Delete AMQ Broker Operator
+  k8s:
+    state: absent
+    api_version: operators.coreos.com/v1alpha1
+    kind: ClusterServiceVersion
+    name: "{{ sub_broker_name.stdout }}"
+    namespace: '{{ operators_project }}'
+
+- name: Collect CustomResourceDefintions
+  k8s_info:
+    api_version: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+    label_selectors:
+    - operators.coreos.com/amq-broker-rhel8.openshift-operators=
+
+  register: crds_list
+
+# - name: Print crds_list
+#   debug:
+#     msg: "result: {{ crds_list }} "
+
+
+- name: Delete CustomResourceDefinitions
+  k8s:
+    state: absent
+    api_version: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+    name: '{{ item.metadata.name }}'
+  loop: '{{ crds_list.resources }}'

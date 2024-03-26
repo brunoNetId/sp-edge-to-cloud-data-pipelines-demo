@@ -1,0 +1,46 @@
+---
+- name: Evaluate {{ operators_project }} namespace if not exists
+  k8s:
+    api_version: v1
+    kind: Namespace
+    name: '{{ operators_project }}'
+    state: present
+  when:
+    - operators_project is defined
+    - operators_project | trim() != "openshift-operators"     
+
+# - name: Evaluate Operator Group
+#   k8s:
+#     api_version: operators.coreos.com/v1alpha2
+#     kind: OperatorGroup
+#     name: workshop-operators
+#     namespace: '{{ operators_project }}'
+#   when:
+#     - operators_project is defined
+#     - operators_project | trim() != "openshift-operators"     
+
+- name: Evaluate Service Interconnect Subscription
+  k8s:
+    state: present
+    resource_definition: "{{ lookup('template', 'service-interconnect-subscription.yaml.j2') }}"
+
+- name: Wait until Service Interconnect Operator is up
+  k8s_info:
+    api_version: v1
+    kind: Deployment
+    name: skupper-site-controller
+    namespace: '{{ operators_project }}'
+  register: pod_list
+  until: pod_list|json_query('resources[*].status.readyReplicas')|unique == [1]
+  retries: 10
+  delay: 30
+
+# - name: Wait for Service Interconnect Operator to install
+#   k8s_info:
+#     api_version: apiextensions.k8s.io/v1
+#     kind: CustomResourceDefinition
+#     name: activemqartemises.broker.amq.io
+#   register: crd_broker
+#   until: crd_broker.resources | list | length == 1
+#   retries: 10
+#   delay: 30
