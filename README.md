@@ -8,13 +8,14 @@ This solution pattern contains resources to showcase a full circle continuous mo
 ## Tested with
 
 * RH OpenShift 4.12.12
+* RHODF 4.12.11 provided by Red Hat
 * RHOAI 2.8.0 provided by Red Hat
 * RHO Pipelines 1.10.4 provided by Red Hat
 * AMQ-Streams 2.6.0-1 provided by Red Hat
-* AMQ Broker 7.10.6 provided by Red Hat
+* AMQ Broker 7.11.6 provided by Red Hat
 * Red Hat build of Apache Camel 4
 * Camel K 1.10.6 provided by Red Hat
-* RH ODF 
+
 
 ## Deployment instructions
 
