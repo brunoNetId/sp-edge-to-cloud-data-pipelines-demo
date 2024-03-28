@@ -1,0 +1,60 @@
+
+- name: Provision AMQ Streams
+  ansible.builtin.include_tasks: provision_streams.yaml
+  vars:
+    operators_project: "workshop-operators"
+    snapshot_operator_project: "openshift-marketplace"
+
+- name: Provision Camel K
+  ansible.builtin.include_tasks: provision_camelk.yaml
+  vars:
+    operators_project: "workshop-operators"
+    snapshot_operator_project: "openshift-marketplace"
+
+      # - name: Provision OpenShift Dev Spaces
+      #   include_tasks: provision_devspaces.yaml
+      #   vars:
+      #     operators_project: "workshop-operators"
+      #     snapshot_operator_project: "openshift-marketplace"
+      #     che_project: "che"
+
+- name: Provision OpenShift Data Foundation
+  include_tasks: provision_odf.yaml
+  vars:
+    odf_project: openshift-storage
+    snapshot_operator_project: "openshift-marketplace"
+
+- name: Provision AI Project
+  include_tasks: provision_rhoai.yaml
+  vars:
+    rhoai_project: tf
+    snapshot_operator_project: "openshift-marketplace"
+
+- name: Provision AMQ Broker
+  include_tasks: provision_broker.yaml
+  vars:
+    operators_project: "openshift-operators"
+    snapshot_operator_project: "openshift-marketplace"
+
+- name: Provision Service Interconnect
+  include_tasks: provision_service_interconnect.yaml
+  vars:
+    operators_project: "openshift-operators"
+    snapshot_operator_project: "openshift-marketplace"
+
+- name: Provision Central infra
+  include_tasks: provision_central.yaml
+  vars:
+    central_namespace: central
+
+- name: Provision Edge1 infra
+  include_tasks: provision_edge.yaml
+  vars:
+    edge_namespace: edge1
+    odf_project: openshift-storage
+
+# - name: Provision Edge2 infra
+#   include_tasks: provision_edge.yaml
+#   vars:
+#     edge_namespace: edge2
+#     odf_project: openshift-storage

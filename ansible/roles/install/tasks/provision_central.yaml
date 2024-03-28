@@ -38,7 +38,22 @@
     state: present
     resource_definition: "{{ lookup('template', 'central-service-interconnect.yaml.j2') }}"
 
+# This check is to help make the annotation task idempotent
+- name: ({{ central_namespace }}) Look for Skupper annotation in Feeder service
+  shell:
+    cmd: >
+      oc get service feeder -n {{ central_namespace }} -o json 
+      | jq '.metadata.annotations."skupper.io/proxy"'
+  register: skupper_annotation_missing
+
+- name: ({{ central_namespace }}) Check if annotation is missing
+  set_fact:
+    skupper_annotation_missing: "{{ skupper_annotation_missing.stdout == 'null' }}"
+
+# Because you can't annotate the service more than once, the task is not IDEMPOTENT.
+# To make it idempotent, we add the condition [when: skupper_annotation_missing] 
 - name: ({{ central_namespace }}) Expose Feeder Service via Interconnect
+  when: skupper_annotation_missing
   shell: 
     cmd: >
       oc annotate service feeder skupper.io/proxy=http -n {{ central_namespace }}

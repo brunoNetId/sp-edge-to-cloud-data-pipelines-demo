@@ -1,32 +1,22 @@
 ---
-      # Implement your Workload deployment tasks here
-      # - name: vars
-      #   set_fact:
-      #       operators_project: 'workshop-operators'
-      #       che_project: 'che'
+- name: Get list of Edge environments
+  shell: 
+    cmd: >
+      oc get projects -o custom-columns=NAME:.metadata.name 
+      | grep edge
+  register: list_edges
+  ignore_errors: True
 
-      # - name: Uninstall Streams
-      #   include_tasks: remove_workload_streams.yml
-      #   vars:
-      #     operators_project: "workshop-operators"
+- name: display Edges available
+  debug:
+    msg: edge {{item}}
+  loop: "{{list_edges.stdout_lines}}"
 
-      # - name: Uninstall Camel-K
-      #   include_tasks: remove_workload_camelk.yml
-      #   vars:
-      #     operators_project: "workshop-operators"
-
-      # - name: Uninstall OpenShift DevSpaces
-      #   include_tasks: remove_workload_devspaces.yml
-      #   vars:
-      #     operators_project: "workshop-operators"
-
-
-
-
-- name: Uninstall Edge1 Deployment
+- name: Uninstall {{item}} Deployment
   include_tasks: remove_edge.yaml
   vars:
-    edge_namespace: "edge1"
+    edge_namespace: "{{item}}"
+  loop: "{{list_edges.stdout_lines}}"
 
 # - name: Uninstall Edge2 Deployment
 #   include_tasks: remove_edge.yaml

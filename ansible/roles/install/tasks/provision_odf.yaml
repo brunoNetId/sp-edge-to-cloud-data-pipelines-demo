@@ -89,7 +89,22 @@
 #     cmd: >
 #       oc annotate service s3 skupper.io/address=s3-central skupper.io/target=s3 skupper.io/proxy=http -n {{ odf_project }}
 
+- name: ({{ odf_project }}) Obtain s3-central service
+  k8s_info:
+    api_version: v1
+    kind: Service
+    namespace: "{{ odf_project }}"
+    name: s3-central
+  register: s3_central_missing
+
+- name: ({{ odf_project }}) Check Service s3-central does not exist yet
+  set_fact:
+    s3_central_missing: "{{ s3_central_missing.resources | length == 0 }}"
+
+# Because you can't annotate the service more than once, the task is not IDEMPOTENT.
+# To make it idempotent, we add the condition [when: s3_central_missing] 
 - name: ({{ odf_project }}) Expose S3 Service via Interconnect
+  when: s3_central_missing
   shell: 
     cmd: >
       oc annotate service s3 skupper.io/address=s3-central skupper.io/proxy=http -n {{ odf_project }}

@@ -42,65 +42,94 @@ https://demo.redhat.com/catalog?item=babylon-catalog-prod/sandboxes-gpte.ocp4-wo
 ### 2. Deploy the Solution Pattern
 
 The instructions below assume:
-* You have `ansible-playbook` installed on your local environment.
+* You either have _Docker_, _Podman_ or `ansible-playbook` installed on your local environment.
 * You have provisioned an OCP instance (tested with OCP 4.12 + RHOAI 2.8), using RHDP, and a bastion server is available.
 
 <br/>
 
-Follow the steps below based on the following mock user/bastion details (`user@bastion_server`):
-   ```
-   lab-user@bastion.b9ck5.sandbox1880.opentlc.com
-   ```
 
-#### Steps
+#### Install the demo
 
-1. Generate an SSH Key. \
-   Generate an authorised key if you don't have one already. \
-   With OpenSSH, an SSH key is created using ssh-keygen. \
-   In the simplest form, just run `ssh-keygen` and answer the questions. \
-   Creating a key pair (public key and private key) only takes a minute. The key files are usually stored in the ~/.ssh directory.
-   
-   <br>
+1. Clone this GitHub repository:
 
-1. Install the public key in the bastion server
-   ```
-   ssh-copy-id -i ~/.ssh/my_public_key lab-user@bastion.b9ck5.sandbox1880.opentlc.com
-   ```
-   <br>
+    ```sh
+    git clone https://github.com/brunoNetId/sp-edge-to-cloud-data-pipelines-demo.git
+    ```
 
-1. Test the authorised key
-   ```
-   ssh lab-user@bastion.b9ck5.sandbox1880.opentlc.com
-   ```
-   The login should now complete without asking for a password. \
-   Make sure you exit the bastion server after your test.
+1. Change to root directory of the project.
 
-   <br>
+    ```sh
+    cd sp-edge-to-cloud-data-pipelines-demo
+    ```
 
-1. Login in Openshift. \
-   Use the `oc login` command to login against OpenShift.
+    <br/>
 
-   <br/>
+1. When running with _Docker_ or _Podman_
+    
+    1. Configure the `KUBECONFIG` file to use (environment details after login).
 
-1. Set the following property:
-   ```
-   TARGET_HOST="lab-user@bastion.b9ck5.sandbox1880.opentlc.com"
-   ```
+        ```sh
+        export KUBECONFIG=./ansible/kube-demo
+        ```
 
-   <br>
+    1. Login into your OpenShift cluster from the `oc` command line.
 
-1. Run the deployment scripts. \
-   To execute the ansible playbook, run:
-   ```
-   ansible-playbook -i ${TARGET_HOST},inventory/openshift.yaml ./install.yaml
-   ```
+        ```sh
+        oc login --username="admin" --server=https://(...):6443 --insecure-skip-tls-verify=true
+        ```
+
+        Replace the `--server` url with your own cluster API endpoint.
+
+    1. Run the Playbook
+
+        1. With Docker:
+        
+            ```sh
+            docker run -i -t --rm --entrypoint /usr/local/bin/ansible-playbook \
+            -v $PWD:/runner \
+            -v $PWD/ansible/kube-demo:/home/runner/.kube/config \
+            quay.io/agnosticd/ee-multicloud:v0.0.11  \
+            ./ansible/install.yaml
+            ```
+        
+        1. With Podman:
+        
+            ```sh
+            podman run -i -t --rm --entrypoint /usr/local/bin/ansible-playbook \
+            -v $PWD:/runner \
+            -v $PWD/ansible/kube-demo:/home/runner/.kube/config \
+            quay.io/agnosticd/ee-multicloud:v0.0.11  \
+            ./ansible/install.yaml
+
+            ```
+    <br/>
+
+1. When running with Ansible Playbook (installed on your machine)
+
+    1. Login into your OpenShift cluster from the `oc` command line.
+
+        For example with: \
+        ```sh
+        oc login --username="admin" --server=https://(...):6443 --insecure-skip-tls-verify=true
+        ```
+        (Replace the `--server` url with your own cluster API endpoint)
+
+    1. Set the following property:
+        ```
+        TARGET_HOST="lab-user@bastion.b9ck5.sandbox1880.opentlc.com"
+        ```
+    2. Run Ansible Playbook
+        ```sh
+        ansible-playbook -i $TARGET_HOST,ansible/inventory/openshift.yaml ./ansible/install.yaml
+        ```
+
 
 <br/>
 
 ### 3. To undeploy the demo
 
-Run:
+Use the same commands as above, but use:
+ - `./uninstall.yaml`
 
-```
-ansible-playbook -i ${TARGET_HOST},inventory/openshift.yaml ./uninstall.yaml
-```
+~~Instead~~ of:
+ - ~~`./install.yaml`~~

@@ -222,13 +222,22 @@
   debug:
     msg: "Is token missing: {{ token_missing }}"
 
+# - name: ({{ edge_namespace }}) Get Central Connection Token
+#   when: token_missing
+#   shell: 
+#     cmd: >
+#       oc get secret -n central central-token -o yaml  
+#       | yq 'del(.metadata.namespace)' 
+#       | yq 'del(.metadata.resourceVersion)'
+#   register: sub_token_request
+
 - name: ({{ edge_namespace }}) Get Central Connection Token
   when: token_missing
   shell: 
     cmd: >
-      oc get secret -n central central-token -o yaml  
-      | yq 'del(.metadata.namespace)' 
-      | yq 'del(.metadata.resourceVersion)'
+      oc get secret -n central central-token -o json  
+      | jq 'del(.metadata.namespace)' 
+      | jq 'del(.metadata.resourceVersion)'
   register: sub_token_request
 
 # - name: Debug Token
@@ -260,9 +269,9 @@
   when: token_missing
   shell: 
     cmd: >
-      oc get secret s3-central-token -n openshift-storage -o yaml  
-      | yq 'del(.metadata.namespace)' 
-      | yq 'del(.metadata.resourceVersion)'
+      oc get secret s3-central-token -n openshift-storage -o json  
+      | jq 'del(.metadata.namespace)' 
+      | jq 'del(.metadata.resourceVersion)'
   register: sub_s3_token_request
 
 # - name: Debug Token

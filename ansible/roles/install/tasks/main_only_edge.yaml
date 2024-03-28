@@ -1,0 +1,6 @@
+---
+- name: Provision {{ EDGE_NAME }} infra
+  include_tasks: provision_edge.yaml
+  vars:
+    edge_namespace: "edge-{{ EDGE_NAME }}"
+    odf_project: openshift-storage
