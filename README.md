@@ -19,19 +19,10 @@ This solution pattern contains resources to showcase a full circle continuous mo
 
 ## Deployment instructions
 
-This Solution Pattern can be automatically self-provisioned from the Red Hat Demo Platform (RHDP). Follow the link below to request in instance:
- - pending URL
-
-<br/>
-
-Alternatively you can run the _Ansible_ playbook manually by performing the following actions.
-
-
-### 1. Provision a RHOAI environment
+### 2. Provision an OpenShift environment
 
 1. Provision the following RHDP item:
-   * Base RHOAI on AWS: \
-https://demo.redhat.com/catalog?item=babylon-catalog-prod/sandboxes-gpte.ocp4-workshop-rhods-base-aws.prod&utm_source=webapp&utm_medium=share-link
+    * [**Solution Pattern - Edge to Core Data Pipelines for AI/ML**](https://demo.redhat.com/catalog?item=babylon-catalog-prod/community-content.com-edge-to-core.prod&utm_source=webapp&utm_medium=share-link)
 
    <br/>
 
@@ -66,7 +57,7 @@ The instructions below assume:
 
 1. When running with _Docker_ or _Podman_
     
-    1. Configure the `KUBECONFIG` file to use (environment details after login).
+    1. Configure the `KUBECONFIG` file to use (where kube details are set after login).
 
         ```sh
         export KUBECONFIG=./ansible/kube-demo
