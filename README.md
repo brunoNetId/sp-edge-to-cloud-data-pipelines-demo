@@ -114,13 +114,35 @@ The instructions below assume:
         ansible-playbook -i $TARGET_HOST,ansible/inventory/openshift.yaml ./ansible/install.yaml
         ```
 
+<br/>
+
+### 3. Deploy more Edge environments
+
+The default installation deploys the following zones:
+ - `edge1`: represents the Edge environment where live inferencing occurs.
+ - `central`: represents the Core data centre where Models are trained
+
+<br>
+
+The Solution Pattern's architecture allows for more _Edge_ environments to be connected to the main data centre, as per the illustration below:
+
+![image](docs/images/07-full-architecture.png)
+
+To deploy new _Edge_ environments, use the same commands as above, but adding the following environment parameter:
+- `-e EDGE_NAME=[your-edge-name]`
+
+For example, using the following parameter definition:
+```sh no-copy
+... ./ansible/install.yaml -e EDGE_NAME=zone2
+```
+will create a new namespace `edge-zone2` where all the _Edge_ applications and integrations will be deployed.
 
 <br/>
 
-### 3. To undeploy the demo
+### 3. Undeploy the Solution Pattern
 
-Use the same commands as above, but use:
+If you wish to undeploy the demo, use the same commands as above, but with:
  - `./uninstall.yaml`
 
-~~Instead~~ of:
+Instead of:
  - ~~`./install.yaml`~~
