@@ -15,6 +15,7 @@ This solution pattern contains resources to showcase a full circle continuous mo
 * AMQ Broker 7.11.6 provided by Red Hat
 * Red Hat build of Apache Camel 4
 * Camel K 1.10.6 provided by Red Hat
+* RH Service Interconnect 1.4.4-rh-1 provided by Red Hat
 
 
 ## Deployment instructions
@@ -126,7 +127,7 @@ The default installation deploys the following zones:
 
 The Solution Pattern's architecture allows for more _Edge_ environments to be connected to the main data centre, as per the illustration below:
 
-![image](docs/images/07-full-architecture.png)
+![image](docs/images/01-full-architecture.png)
 
 To deploy new _Edge_ environments, use the same commands as above, but adding the following environment parameter:
 - `-e EDGE_NAME=[your-edge-name]`
