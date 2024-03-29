@@ -5,6 +5,13 @@ The Edge to Core Data Pipelines for AI/ML solution pattern provides an architect
 This solution pattern contains resources to showcase a full circle continuous motion of data to capture training data, train new ML models, deploy them, serve them, and expose the service for clients to send inference requests.
 
 
+## Home page
+
+Head to the Solution Pattern's home page to get the full context of this demo sources. You can find it following the link below:
+
+- [**Solution Pattern Home Page**](https://redhat-solution-patterns.github.io/solution-pattern-edge-to-cloud-pipelines/solution-pattern-edge-to-core-pipelines/index.html)
+
+
 ## Tested with
 
 * RH OpenShift 4.12.12
