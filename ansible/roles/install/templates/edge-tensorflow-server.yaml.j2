@@ -4,6 +4,7 @@ kind: Deployment
 metadata:
   labels:
     app: tf-server
+    app.kubernetes.io/part-of: model-server
   name: tf-server
   annotations:
     app.openshift.io/connects-to: minio
