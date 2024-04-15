@@ -76,7 +76,7 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.annotations['pipelines.kubeflow.org/run_name']
-          image: quay.io/opendatahub-contrib/workbench-images:cuda-runtime-tensorflow-c9s-py39_2023c_latest
+          image: quay.io/redhatintegration/sp-ai-pipeline-step-runner:1.0.0
           volumeMounts:
           - mountPath: /data
             name: pipeline-pvc
@@ -150,7 +150,7 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.annotations['pipelines.kubeflow.org/run_name']
-          image: quay.io/opendatahub-contrib/workbench-images:cuda-runtime-tensorflow-c9s-py39_2023c_latest
+          image: quay.io/redhatintegration/sp-ai-pipeline-step-runner:1.0.0
           volumeMounts:
           - mountPath: /data
             name: pipeline-pvc
@@ -242,7 +242,7 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.annotations['pipelines.kubeflow.org/run_name']
-          image: quay.io/opendatahub-contrib/workbench-images:cuda-runtime-tensorflow-c9s-py39_2023c_latest
+          image: quay.io/redhatintegration/sp-ai-pipeline-step-runner:1.0.0
           volumeMounts:
           - mountPath: /data
             name: pipeline-pvc
