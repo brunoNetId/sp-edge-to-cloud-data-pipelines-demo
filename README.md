@@ -100,6 +100,14 @@ The instructions below assume:
             quay.io/agnosticd/ee-multicloud:v0.0.11  \
             ./ansible/install.yaml
 
+            for SE Linux enabled hosts use the Z flag to set the correct SELinux label on the bind mount: 
+            ```sh
+            podman run -i -t --rm --entrypoint /usr/local/bin/ansible-playbook \
+            -v $PWD:/runner:Z \
+            -v $PWD/ansible/kube-demo:/home/runner/.kube/config:Z \
+            quay.io/agnosticd/ee-multicloud:v0.0.11  \
+            ./ansible/install.yaml         
+
             ```
     <br/>
 
