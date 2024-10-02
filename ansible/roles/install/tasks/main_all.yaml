@@ -47,6 +47,9 @@
   vars:
     central_namespace: central
 
+- name: Provision filestash S3 viewer
+  include_tasks: provision_filestash.yaml
+
 - name: Provision Edge1 infra
   include_tasks: provision_edge.yaml
   vars:
