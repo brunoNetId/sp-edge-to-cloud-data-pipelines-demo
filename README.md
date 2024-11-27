@@ -15,13 +15,13 @@ Head to the Solution Pattern's home page to get the full context of this demo so
 ## Tested with
 
 * RH OpenShift 4.12.12
-* RHODF 4.12.11 provided by Red Hat
-* RHOAI 2.8.0 provided by Red Hat
+* RHODF 4.12.14 provided by Red Hat
+* RHOAI 2.8.4 provided by Red Hat
 * RHO Pipelines 1.10.4 provided by Red Hat
-* AMQ-Streams 2.6.0-1 provided by Red Hat
-* AMQ Broker 7.11.6 provided by Red Hat
+* AMQ-Streams 2.8.0-0 provided by Red Hat
+* AMQ Broker 7.11.7 provided by Red Hat
 * Red Hat build of Apache Camel 4
-* Camel K 1.10.6 provided by Red Hat
+* Camel K 1.10.8 provided by Red Hat
 * RH Service Interconnect 1.4.4-rh-1 provided by Red Hat
 
 
@@ -30,7 +30,7 @@ Head to the Solution Pattern's home page to get the full context of this demo so
 ### 2. Provision an OpenShift environment
 
 1. Provision the following RHDP item:
-    * [**Solution Pattern - Edge to Core Data Pipelines for AI/ML**](https://demo.redhat.com/catalog?item=babylon-catalog-prod/community-content.com-edge-to-core.prod&utm_source=webapp&utm_medium=share-link)
+    * [**Solution Pattern - Edge to Core Data Pipelines for AI/ML**](https://catalog.demo.redhat.com/catalog?item=babylon-catalog-prod/sandboxes-gpte.com-edge-to-core.prod&utm_source=webapp&utm_medium=share-link)
 
    <br/>
 

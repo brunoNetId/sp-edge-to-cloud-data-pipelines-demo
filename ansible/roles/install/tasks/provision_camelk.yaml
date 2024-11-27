@@ -24,6 +24,23 @@
     state: present
     resource_definition: "{{ lookup('template', 'camelk-subscription.yaml.j2') }}"
 
+- name: "Wait until InstallPlan is available"
+  k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: Subscription
+    namespace: "{{ operators_project }}"
+    name: red-hat-camel-k
+  register: sub
+  retries: 30
+  delay: 10
+  until:
+   - sub.resources[0].status.installplan.name is defined
+
+- name: Approve InstallPlan
+  shell: 
+    cmd: >
+      oc patch installplan {{ sub.resources[0].status.installplan.name }} -n {{ operators_project }}  --type=json -p='[{"op": "replace", "path": "/spec/approved", "value": true}]'
+
 - name: "Wait for Camel K operator to be ready"
   k8s_info:
     api_version: v1

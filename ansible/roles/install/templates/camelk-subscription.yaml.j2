@@ -5,9 +5,8 @@ metadata:
   name: red-hat-camel-k
   namespace: '{{ operators_project }}'
 spec:
-  # channel: 1.8.x
   channel: 1.10.x
-  installPlanApproval: Automatic
+  installPlanApproval: Manual
   name: red-hat-camel-k
   source: redhat-operators
   sourceNamespace: {{ snapshot_operator_project }}

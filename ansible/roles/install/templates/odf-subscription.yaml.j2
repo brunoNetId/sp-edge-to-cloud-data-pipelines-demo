@@ -5,7 +5,7 @@ metadata:
   namespace: {{ odf_project }}
 spec:
   channel: "{{ subscription_versions_for_ocp[openshift_version].odf.channel }}" 
-  installPlanApproval: Automatic
+  installPlanApproval: Manual
   name: odf-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace

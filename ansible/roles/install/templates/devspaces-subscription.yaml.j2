@@ -1,27 +1,13 @@
-# apiVersion: operators.coreos.com/v1alpha1
-# kind: Subscription
-# metadata:
-#   name: devspaces
-#   namespace: '{{ operators_project }}'
-# spec:
-#   channel: stable
-#   installPlanApproval: Automatic
-#   name: devspaces
-#   source: redhat-operators-snapshot-dil
-#   sourceNamespace: {{ snapshot_operator_project }}
-
-
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
   labels:
     operators.coreos.com/devspaces.openshift-operators: ''
   name: devspaces
-  # namespace: openshift-operators
   namespace: '{{ operators_project }}'
 spec:
   channel: stable
-  installPlanApproval: Automatic
+  installPlanApproval: Manual
   name: devspaces
   source: redhat-operators
   sourceNamespace: openshift-marketplace

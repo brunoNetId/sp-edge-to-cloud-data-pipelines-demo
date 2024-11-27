@@ -24,6 +24,23 @@
     state: present
     resource_definition: "{{ lookup('template', 'service-interconnect-subscription.yaml.j2') }}"
 
+- name: "Wait until InstallPlan is available"
+  k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: Subscription
+    namespace: "{{ operators_project }}"
+    name: skupper-operator
+  register: sub
+  retries: 30
+  delay: 10
+  until:
+   - sub.resources[0].status.installplan.name is defined
+
+- name: Approve InstallPlan
+  shell: 
+    cmd: >
+      oc patch installplan {{ sub.resources[0].status.installplan.name }} -n {{ operators_project }}  --type=json -p='[{"op": "replace", "path": "/spec/approved", "value": true}]'
+
 - name: Wait until Service Interconnect Operator is up
   k8s_info:
     api_version: v1
