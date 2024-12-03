@@ -4,6 +4,13 @@ The Edge to Core Data Pipelines for AI/ML solution pattern provides an architect
 
 This solution pattern contains resources to showcase a full circle continuous motion of data to capture training data, train new ML models, deploy them, serve them, and expose the service for clients to send inference requests.
 
+> [!IMPORTANT]
+> 
+> The solution in this repository utilizes integrations based on _Apache Camel K_. While _Camel K_ is still active within upstream _Apache Camel_, Red Hat has shifted its support to a cloud-native approach, focusing on [_Camel JBang_](https://camel.apache.org/manual/camel-jbang.html) and [_Kaoto_](https://kaoto.io) as primary development tools.
+>
+> As a result, all <i>Camel K</i> instances in this Solution Pattern will transition to the [**Red Hat build of Apache Camel**](https://developers.redhat.com/products/redhat-build-of-apache-camel/overview), aligning with Red Hat's new strategic direction.
+
+<br>
 
 ## Home page
 
